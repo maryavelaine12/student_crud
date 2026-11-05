@@ -4,33 +4,64 @@ This document preserves the complete context, architectural specifications, setu
 
 ---
 
-## 1. Project Status: COMPLETED
+## 1. Project Status: COMPLETED & RENDER-READY
 
-All phases requested have been fully implemented and verified:
+All phases requested have been fully implemented and prepared for Render deployment:
 - [x] Spring Boot REST API aligned at `/buenaventura/students` with `@CrossOrigin(origins = "*")`
+- [x] Multi-stage `Dockerfile` (`eclipse-temurin:21`) created in `student/Dockerfile`
+- [x] Production database environment variables configured in `student/src/main/resources/application.properties`
 - [x] Vite + React (JavaScript) application scaffolded in `/frontend`
 - [x] Tailwind CSS v4 configured via `@tailwindcss/vite`
+- [x] Dynamic API URL resolution (`VITE_API_BASE_URL` on Render; proxy on local dev) in `frontend/src/api/studentApi.js`
 - [x] Reverse Proxy configured in `vite.config.js` forwarding `/buenaventura` to `http://localhost:8080`
-- [x] Centralized API service layer implemented in `frontend/src/api/studentApi.js`
 - [x] **100% Non-Modal UI Layout:**
   - Dedicated **Student Form Card** for enrollment and editing (with mode switching & cancel)
   - Real-time search and course filtering bar
   - **Inline Delete Confirmation:** Action row switches to an inline `[Yes] [No]` confirmation prompt right in the table cell
   - Toast notifications and connection status notices
-- [x] Clean Git repository initialized with root `.gitignore` and committed
+- [x] Blueprint configuration created in `render.yaml` (Backend Docker web service, Frontend static site, PostgreSQL database)
 
 ---
 
-## 2. System Architecture & Endpoints
+## 2. Render.com Deployment Architecture
 
-### Data Model (`Student.java`)
-- `id` (Integer, auto-incremented primary key)
-- `firstname` (String)
-- `lastname` (String)
-- `course` (String)
-- `section` (String)
+Following the blueprint in `render.yaml`:
 
-### REST API Endpoints
+```
+┌────────────────────────────────────────────────────────┐
+│                   Render.com Blueprint                 │
+├───────────────────────┬────────────────────────────────┤
+│ student-db            │ Free PostgreSQL Database       │
+│                       │ (db_student)                   │
+├───────────────────────┼────────────────────────────────┤
+│ student-backend       │ Docker Web Service             │
+│                       │ Base path: /buenaventura/students│
+│                       │ Port: 8080                     │
+├───────────────────────┼────────────────────────────────┤
+│ student-frontend      │ Static Web Site                │
+│                       │ Build: npm run build           │
+│                       │ Publish: frontend/dist         │
+│                       │ Env: VITE_API_BASE_URL         │
+└───────────────────────┴────────────────────────────────┘
+```
+
+### Steps to Deploy on Render.com:
+1. Push all code to GitHub (`https://github.com/maryavelaine12/student_crud.git`).
+2. Log in to your [Render Dashboard](https://dashboard.render.com/).
+3. Click **New +** and select **Blueprint**.
+4. Connect the repository `maryavelaine12/student_crud`.
+5. Render reads `render.yaml` and will automatically spin up:
+   - **PostgreSQL Database** (`student-db`)
+   - **Backend Web Service** (`student-backend`)
+   - **Frontend Static Site** (`student-frontend`)
+6. Click **Apply** to deploy!
+
+---
+
+## 3. REST API Endpoints
+
+- **Entity Model:** `id`, `firstname`, `lastname`, `course`, `section`
+
 | HTTP Method | Endpoint | Request Body | Description |
 |---|---|---|---|
 | `GET` | `/buenaventura/students` | None | Fetch all students |
@@ -41,47 +72,26 @@ All phases requested have been fully implemented and verified:
 
 ---
 
-## 3. Frontend Component Breakdown (`frontend/src`)
-
-- `App.jsx`: Main state coordinator (CRUD operations, filter/search state, error banners).
-- `components/Navbar.jsx`: Header with branding and data refresh button.
-- `components/StudentForm.jsx`: Sticky Form Card with Add/Edit toggle, validation, and cancel edit.
-- `components/SearchFilter.jsx`: Search by keyword (name, ID, course, section) and course dropdown.
-- `components/StudentTable.jsx`: Data table with empty states, loading indicators, and row rendering.
-- `components/StudentTableRow.jsx`: Individual row with badges and **inline delete confirmation**.
-- `components/Toast.jsx`: Unobtrusive floating alert banner.
-- `api/studentApi.js`: Centralized fetch client communicating with backend endpoints.
-
----
-
-## 4. How to Run on Another Computer
-
-To run this application on another computer:
+## 4. How to Run Locally
 
 ### Step 1: Prerequisites
 1. **Node.js**: v18 or higher (includes npm)
-2. **Java Development Kit**: JDK 17 or higher
-3. **PostgreSQL**: Running locally on port `5432` with database `db_user`, username `postgres`, password `admin` (or update `student/src/main/resources/application.properties`).
+2. **Java Development Kit**: JDK 17 or 21
+3. **PostgreSQL**: Running locally on port `5432` with database `db_user`, user `postgres`, password `admin`.
 
 ### Step 2: Start the Backend (Spring Boot)
-Open a terminal in the project directory:
 ```bash
 cd student
-
 # On Windows:
 .\mvnw.cmd spring-boot:run
-
 # On macOS / Linux:
 ./mvnw spring-boot:run
 ```
-The backend server runs on `http://localhost:8080`.
 
 ### Step 3: Start the Frontend (Vite React)
-Open a second terminal in the project directory:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 Open your browser at `http://localhost:5173`.
-All API requests to `/buenaventura/students` are automatically proxied by Vite to the backend on port `8080`.
